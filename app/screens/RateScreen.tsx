@@ -18,6 +18,7 @@ import { useNavigation } from "@react-navigation/native"
 import { shortenKey } from "app/utils/shortenKey"
 import { useStores } from "app/models"
 import { HelpCircleIcon } from "lucide-react-native"
+import { UnsignedEvent } from "nostr-tools"
 
 interface RateScreenProps extends NativeStackScreenProps<AppStackScreenProps<"User">> {}
 
@@ -27,15 +28,9 @@ export const RateScreen: FC<RateScreenProps> = observer(function RateScreen({
   route: any
 }) {
   const { id } = route.params
-  const { pool, contactManager } = useContext(RelayContext)
-  const {
-    userStore: { addContact, removeContact },
-  } = useStores()
+  const { pool } = useContext(RelayContext)
 
   const [profile, setProfile] = useState(null)
-  const [followed, setFollowed] = useState(false)
-  const [legacy, setLegacy] = useState(true)
-  const [secret, setSecret] = useState(false)
 
   const [thumbsUp, setThumbsUp] = useState(false)
   const [thumbsDown, setThumbsDown] = useState(false)
@@ -45,14 +40,14 @@ export const RateScreen: FC<RateScreenProps> = observer(function RateScreen({
   const [knowledgable, setKnowledgable] = useState(false)
   const [funny, setFunny] = useState(false)
 
-  const setNegative = () => {
+  const setNegative = (explicit?: boolean = true) => {
     setThumbsUp(false)
     setFriendly(false)
     setHelpful(false)
     setResponsive(false)
     setKnowledgable(false)
     setFunny(false)
-    setThumbsDown(true)
+    setThumbsDown(explicit)
   }
 
   const setPositive = (quality?: string) => {
@@ -78,42 +73,38 @@ export const RateScreen: FC<RateScreenProps> = observer(function RateScreen({
     }
   }
 
+  const calculateRating = () => {
+    let rating = 0
+    if (thumbsUp) rating += 0.5
+    if (friendly) rating += 0.1
+    if (helpful) rating += 0.1
+    if (responsive) rating += 0.1
+    if (knowledgable) rating += 0.1
+    if (funny) rating += 0.1
+    return rating
+  }
+
+  const rate = () => {
+    const amt = calculateRating()
+    const result = pool.send({
+      kind: 1985,
+      tags: [
+        ["L", "city.arcade"],
+        ["l", "social", "city.arcade", `{"quality":${amt}}`],
+        ["p", id],
+      ],
+      content: '',
+      created_at: Math.floor(Date.now()/1000),
+    })
+    result.then(() => {
+      // todo - show your rating
+    })
+    // cleanup
+    setNegative(false) // resets all rating variables
+  }
+
   // Pull in navigation via hook
   const navigation = useNavigation<any>()
-
-  const toggleFollow = async () => {
-    if (followed) {
-      await removeContact(id, contactManager)
-      setFollowed(!followed)
-    } else {
-      await addContact({ pubkey: id, legacy, secret }, contactManager)
-      setFollowed(!followed)
-    }
-  }
-
-  const togglePrivFollow = async () => {
-    try {
-      // send to mobx, so the home screen is updated
-      await addContact({ pubkey: id, legacy: legacy && !secret, secret: !secret }, contactManager)
-      setSecret(!secret)
-    } catch (e) {
-      // never set user toggle if save failed
-      alert(`Cannot save to network: ${e}`)
-    }
-  }
-
-  const toggleLegacy = async () => {
-    if (!secret) {
-      try {
-        // send to mobx, so the home screen is updated
-        await addContact({ pubkey: id, legacy: !legacy && !secret, secret }, contactManager)
-        setLegacy(!legacy)
-      } catch (e) {
-        // never set user toggle if save failed
-        alert(`Cannot save to network: ${e}`)
-      }
-    }
-  }
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -137,12 +128,6 @@ export const RateScreen: FC<RateScreenProps> = observer(function RateScreen({
       if (latest) {
         const content = JSON.parse(latest.content)
         setProfile(content)
-      }
-      const ctx = contactManager.contacts.get(id)
-      if (ctx) {
-        setFollowed(true)
-        setLegacy(ctx.legacy)
-        setSecret(ctx.secret)
       }
     }
     fetchProfile().catch(console.error)
@@ -245,6 +230,7 @@ export const RateScreen: FC<RateScreenProps> = observer(function RateScreen({
             <View style={$section}>
               <Button
                 text="Publish"
+                onPress={rate}
                 style={$profileButton}
               />
               <Text size="sm" style={$note}>You can revise your rating at any time. Just press Publish.</Text>
