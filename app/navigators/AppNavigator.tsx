@@ -43,6 +43,7 @@ export type AppStackParamList = {
   AddContact: undefined
   NewMessage: undefined
   ChannelMembers: undefined
+  Rate: undefined
 }
 
 const exitRoutes = Config.exitRoutes
@@ -87,6 +88,7 @@ const AppStack = observer(function AppStack() {
           <Stack.Screen name="NewMessage" component={Screens.NewMessageScreen} />
           <Stack.Screen name="ChannelMembers" component={Screens.ChannelMembersScreen} />
           <Stack.Screen name="Demos" component={Screens.DemosScreen} />
+          <Stack.Screen name="Rate" component={Screens.RateScreen} />
         </>
       ) : (
         <Stack.Screen name="Auth" component={AuthNavigator} />

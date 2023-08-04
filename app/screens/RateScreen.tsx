@@ -19,9 +19,9 @@ import { shortenKey } from "app/utils/shortenKey"
 import { useStores } from "app/models"
 import { HelpCircleIcon } from "lucide-react-native"
 
-interface UserScreenProps extends NativeStackScreenProps<AppStackScreenProps<"User">> {}
+interface RateScreenProps extends NativeStackScreenProps<AppStackScreenProps<"User">> {}
 
-export const UserScreen: FC<UserScreenProps> = observer(function UserScreen({
+export const RateScreen: FC<RateScreenProps> = observer(function RateScreen({
   route,
 }: {
   route: any
@@ -36,6 +36,47 @@ export const UserScreen: FC<UserScreenProps> = observer(function UserScreen({
   const [followed, setFollowed] = useState(false)
   const [legacy, setLegacy] = useState(true)
   const [secret, setSecret] = useState(false)
+
+  const [thumbsUp, setThumbsUp] = useState(false)
+  const [thumbsDown, setThumbsDown] = useState(false)
+  const [friendly, setFriendly] = useState(false)
+  const [helpful, setHelpful] = useState(false)
+  const [responsive, setResponsive] = useState(false)
+  const [knowledgable, setKnowledgable] = useState(false)
+  const [funny, setFunny] = useState(false)
+
+  const setNegative = () => {
+    setThumbsUp(false)
+    setFriendly(false)
+    setHelpful(false)
+    setResponsive(false)
+    setKnowledgable(false)
+    setFunny(false)
+    setThumbsDown(true)
+  }
+
+  const setPositive = (quality?: string) => {
+    setThumbsDown(false)
+    setThumbsUp(true)
+    if (!quality) return 
+    switch (quality) {
+      case "friendly":
+        setFriendly(!friendly)
+        break
+      case "helpful":
+        setHelpful(!helpful)
+        break
+      case "responsive":
+        setResponsive(!responsive)
+        break
+      case "knowledgable":
+        setKnowledgable(!knowledgable)
+        break
+      case "funny":
+        setFunny(!funny)
+        break
+    }
+  }
 
   // Pull in navigation via hook
   const navigation = useNavigation<any>()
@@ -79,7 +120,7 @@ export const UserScreen: FC<UserScreenProps> = observer(function UserScreen({
       headerShown: true,
       header: () => (
         <Header
-          title="Profile"
+          title="Rate"
           titleStyle={{ color: colors.palette.cyan400 }}
           leftIcon="back"
           leftIconColor={colors.palette.cyan400}
@@ -145,99 +186,74 @@ export const UserScreen: FC<UserScreenProps> = observer(function UserScreen({
             <Text preset="default" text={profile?.about || "No about"} />
           </View>
         </View>
-        <View style={$buttonGroup}>
-          <Button
-            text="Message"
-            style={$profileButton}
-            onPress={() =>
-              navigation.navigate("DirectMessage", {
-                id,
-                name: profile?.username || profile?.name || profile?.display_name,
-                legacy,
-              })
-            }
-          />
-          <Button
-            text={followed ? "Unfollow" : "Follow"}
-            onPress={() => toggleFollow()}
-            style={$profileButton}
-          />
-          <View>
-            {!followed && (
-              <>
-                <Button
-                  text={secret ? "Stop private follow" : "Private follow"}
-                  onPress={() => togglePrivFollow()}
-                  style={$profileButton}
-                />
-                <Text text="Nobody can see your private follow" size="xs" style={$note} />
-              </>
-            )}
-          </View>
-          <View>
-            <Button
-              text={"Rate 🌟"}
-              onPress={() => 
-                navigation.navigate("Rate", { 
-                  id,
-                  name: profile?.username || profile?.name || profile?.display_name,
-                  legacy
-                })
-              }
-              style={$profileButton}
-            />
-          </View>
-        </View>
+
+
+
         <View style={$section}>
-          <Text text="Contact settings" preset="bold" style={$sectionHeading} />
-          <View style={$sectionData}>
-            <ListItem
-              text="Use legacy, unblinded DM's"
-              bottomSeparator={true}
-              style={$sectionItem}
-              containerStyle={$sectionItemContainer}
-              RightComponent={
-                !secret ? (
-                  <Toggle
-                    id="legacy"
-                    inputOuterStyle={secret ? $toggleDisabled : $toggle}
-                    inputInnerStyle={$toggleInner}
-                    inputDetailStyle={$toggleDetail}
-                    variant="switch"
-                    value={legacy && !secret}
-                    disabled={secret}
-                    onPress={toggleLegacy}
-                  />
-                ) : (
-                  <TouchableOpacity
-                    onPress={() =>
-                      Alert.alert("Blinded DM automatically enabled when you use private follow")
-                    }
-                  >
-                    <HelpCircleIcon width={20} height={20} color={colors.palette.cyan500} />
-                  </TouchableOpacity>
-                )
-              }
-            />
-            <ListItem
-              text="Hide this contact (private follow)"
-              bottomSeparator={true}
-              style={followed ? $sectionItem : $hidden}
-              containerStyle={$sectionItemContainer}
-              RightComponent={
-                <Toggle
-                  id="secret"
-                  inputOuterStyle={$toggle}
-                  inputInnerStyle={$toggleInner}
-                  inputDetailStyle={$toggleDetail}
-                  variant="switch"
-                  value={secret}
-                  onPress={togglePrivFollow}
-                />
-              }
-            />
+          <View>
+            <Text size="lg">Rate this user.</Text>
+            <Text size="xs">
+              This is a public NIP-32 rating. Ratings are not editable but only your most recent rating is used by Arcade.
+            </Text>
           </View>
+          <View style={$buttonGroup}>
+            <Button
+              text={thumbsDown ? "😒👎" : "👎"}
+              style={$profileButton}
+              onPress={setNegative}
+            />
+            <Text style={$note} size="lg">Or</Text>
+            <Button
+              text={thumbsUp ? "😀👍" : "👍"}
+              style={$profileButton}
+              onPress={() => setPositive()}
+            />
+            { thumbsUp ? <>
+            <Button
+              text="Friendly"
+              style={$profileButton}
+              RightAccessory={friendly ? () => <Text> ✅</Text> : null}
+              onPress={() => setPositive("friendly")}
+            />
+            <Button
+              text="Helpful"
+              style={$profileButton}
+              RightAccessory={helpful? () => <Text> ✅</Text> : null}
+              onPress={() => setPositive("helpful")}
+            />
+            <Button
+              text="Responsive"
+              style={$profileButton}
+              RightAccessory={responsive? () => <Text> ✅</Text> : null}
+              onPress={() => setPositive("responsive")}
+            />
+            <Button
+              text="Knowledgable"
+              style={$profileButton}
+              RightAccessory={knowledgable? () => <Text> ✅</Text> : null}
+              onPress={() => setPositive("knowledgable")}
+            />
+            <Button
+              text="Funny"
+              style={$profileButton}
+              RightAccessory={funny? () => <Text> ✅</Text> : null}
+              onPress={() => setPositive("funny")}
+            />
+            </> : null }
+          </View>
+          { thumbsDown || thumbsUp ? 
+            <View style={$section}>
+              <Button
+                text="Publish"
+                style={$profileButton}
+              />
+              <Text size="sm" style={$note}>You can revise your rating at any time. Just press Publish.</Text>
+            </View>
+              : 
+            <Text>You will have a chance to review your rating before publishing it.</Text>
+          }
         </View>
+
       </View>
     </Screen>
   )
@@ -286,6 +302,7 @@ const $userNip05: TextStyle = {
 
 const $userAbout: ViewStyle = {
   marginTop: spacing.small,
+  marginBottom: spacing.large,
 }
 
 const $buttonGroup: ViewStyle = {
